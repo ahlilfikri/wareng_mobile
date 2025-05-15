@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:tubes/pages/detail_agenda_page.dart';
 
 class SocialMediaButtons extends StatelessWidget {
   Future<void> _launchURL(String urlString, {String? appScheme}) async {
@@ -329,6 +330,7 @@ class InformasiDesaPage extends StatelessWidget {
   }
 }
 
+// Update the ActivityCard to navigate to DetailAgendaPage
 class ActivityCard extends StatelessWidget {
   final String title;
   final String date;
@@ -360,14 +362,29 @@ class ActivityCard extends StatelessWidget {
             SizedBox(height: 8),
             Text(date, style: TextStyle(fontSize: 14)),
             Text(location, style: TextStyle(fontSize: 14)),
-            TextButton(onPressed: () {}, child: Text('Baca lebih banyak >>')),
+            TextButton(
+              onPressed: () {
+                // Navigate to DetailAgendaPage and pass the data
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => DetailAgendaPage(
+                      title: title,
+                      date: date,
+                      location: location,
+                      imageUrl: imageUrl,
+                    ),
+                  ),
+                );
+              },
+              child: Text('Baca lebih banyak >>'),
+            ),
           ],
         ),
       ),
     );
   }
 }
-
 class PerangkatDesaCarousel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {

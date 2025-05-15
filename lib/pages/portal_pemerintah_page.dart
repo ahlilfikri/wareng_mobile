@@ -21,14 +21,14 @@ class PortalPemerintahPage extends StatelessWidget {
             subtitle:
                 'SINKAL merupakan program yang diadakan oleh Biro Tata Pemerintahan Setda DIY yang terintegrasi mulai...',
             image:
-                'assets/image-not-found.png', // Replace with actual image asset
+                'assets/informasi/activity-example.png', // Replace with actual image asset
           ),
           PortalCard(
             title: 'SID',
             subtitle:
                 'Sistem Informasi Desa (SID) adalah sebuah platform teknologi informasi komunikasi untuk mendukung pe...',
             image:
-                'assets/image-not-found.png', // Replace with actual image asset
+                'assets/informasi/activity-example.png', // Replace with actual image asset
           ),
           // Add more PortalCards as needed
         ],
