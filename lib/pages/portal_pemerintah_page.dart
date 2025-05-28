@@ -22,8 +22,11 @@ class _PortalPemerintahPageState extends State<PortalPemerintahPage> {
 
   Future<void> _fetchPortalData() async {
     try {
-      final response = await http.get(Uri.parse(
-          'https://wareng-three.vercel.app/api/v1/informasi/portal/get-portal'));
+      final response = await http.get(
+        Uri.parse(
+          'https://wareng-three.vercel.app/api/v1/informasi/portal/get-portal',
+        ),
+      );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -46,43 +49,72 @@ class _PortalPemerintahPageState extends State<PortalPemerintahPage> {
       print('Error fetching portal data: $e');
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Portal Pemerintah',
-          style: TextStyle(color: Colors.white),
-        ),
+        title: Text('Portal Pemerintah', style: TextStyle(color: Colors.white)),
         backgroundColor: Color(0xFF00917C),
-        iconTheme: IconThemeData(
-          color: Colors.white,
-        ),
+        iconTheme: IconThemeData(color: Colors.white),
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: Color(0xFF00917C)))
-          : _errorMessage.isNotEmpty
-          ? Center(child: Text(_errorMessage, style: TextStyle(color: Colors.red, fontSize: 16)))
-          : _portalData.isEmpty
-          ? Center(child: Text('Tidak ada data', style: TextStyle(fontSize: 16)))
-          : ListView.builder(
-        itemCount: _portalData.length,
-        itemBuilder: (context, index) {
-          final portal = _portalData[index];
-          final imageUrl = (portal['img'] != null &&
-              portal['img'] is List &&
-              portal['img'].isNotEmpty)
-              ? 'https://wareng-three.vercel.app/images/portal/${portal['img'][0]}'
-              : 'https://via.placeholder.com/60';
+      body:
+          _isLoading
+              ? Center(
+                child: CircularProgressIndicator(color: Color(0xFF00917C)),
+              )
+              : _errorMessage.isNotEmpty
+              ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.event_busy, size: 64, color: Colors.grey[400]),
+                    SizedBox(height: 16),
+                    Text(
+                      'Sistem Sedang Sibuk',
+                      style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              )
+              : _portalData.isEmpty
+              ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.event_busy, size: 64, color: Colors.grey[400]),
+                    SizedBox(height: 16),
+                    Text(
+                      'Tidak ada agenda yang ditemukan',
+                      style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Coba ubah filter atau kata kunci pencarian',
+                      style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                    ),
+                  ],
+                ),
+              )
+              : ListView.builder(
+                itemCount: _portalData.length,
+                itemBuilder: (context, index) {
+                  final portal = _portalData[index];
+                  final imageUrl =
+                      (portal['img'] != null &&
+                              portal['img'] is List &&
+                              portal['img'].isNotEmpty)
+                          ? 'https://wareng-three.vercel.app/images/portal/${portal['img'][0]}'
+                          : '';
 
-          return PortalCard(
-            title: portal['title'] ?? 'Judul Tidak Tersedia',
-            subtitle: portal['isi'] ?? 'Deskripsi Tidak Tersedia',
-            imageUrl: imageUrl,
-            url: portal['content'] ?? '',
-          );
-        },
-      ),
+                  return PortalCard(
+                    title: portal['title'] ?? 'Judul Tidak Tersedia',
+                    subtitle: portal['isi'] ?? 'Deskripsi Tidak Tersedia',
+                    imageUrl: imageUrl,
+                    url: portal['content'] ?? '',
+                  );
+                },
+              ),
     );
   }
 }
@@ -116,8 +148,7 @@ class PortalCard extends StatelessWidget {
               height: 60,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
-                return Image.asset('assets/informasi/activity-example.png',
-                    width: 60, height: 60, fit: BoxFit.cover);
+                return Icon(Icons.broken_image, size: 80, color: Colors.grey);
               },
             ),
             SizedBox(width: 16),
@@ -134,19 +165,21 @@ class PortalCard extends StatelessWidget {
                     subtitle,
                     style: TextStyle(fontSize: 14, color: Colors.grey),
                     maxLines: 2,
-                    overflow:
-                    TextOverflow.ellipsis,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
             ElevatedButton(
               onPressed: () async {
-                if (await canLaunchUrl(Uri.parse(url))) {
-                  await launchUrl(Uri.parse(url));
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not launch $url')));
+                // Ensure the URL has a scheme (http or https)
+                String launchUrlData = url;
+                if (!launchUrlData.startsWith('http://') && !launchUrlData.startsWith('https://')) {
+                  launchUrlData = 'https://' + launchUrlData;
                 }
+
+                final uri = Uri.parse(launchUrlData);
+                  await launchUrl(uri);
               },
               child: Text('Kunjungi'),
               style: ElevatedButton.styleFrom(

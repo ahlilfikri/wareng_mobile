@@ -12,22 +12,19 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController nikController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
-  // Variable to track the loading state
   bool isLoading = false;
 
-  // Fungsi untuk melakukan login
   Future<void> login() async {
     setState(() {
-      isLoading = true; // Set loading to true when login starts
+      isLoading = true;
     });
 
     final String url = 'https://wareng-three.vercel.app/api/v1/administrasi/warga/login';
 
     try {
-      // Mencetak data yang akan dikirim ke server
       if (nikController.text.isEmpty || passwordController.text.isEmpty) {
         setState(() {
-          isLoading = false; // Set loading to false when there's an error
+          isLoading = false;
         });
         showDialog(
           context: context,
@@ -62,23 +59,20 @@ class _LoginPageState extends State<LoginPage> {
         }),
       );
 
-      // Log respons dari server
       print('Response status: ${response.statusCode}');
       print('Response body: ${response.body}');
 
       setState(() {
-        isLoading = false; // Set loading to false when response is received
+        isLoading = false;
       });
 
       if (response.statusCode == 200) {
-        // Login berhasil, arahkan ke LandingPage
         print('Login berhasil!');
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => LandingPage()),
         );
       } else {
-        // Jika login gagal, tampilkan pesan error
         print('Login gagal, status code: ${response.statusCode}');
         showDialog(
           context: context,
@@ -97,9 +91,8 @@ class _LoginPageState extends State<LoginPage> {
         );
       }
     } catch (error) {
-      // Menangani error jika terjadi masalah dengan koneksi atau API
       setState(() {
-        isLoading = false; // Set loading to false in case of error
+        isLoading = false;
       });
       print('Terjadi error: $error');
       showDialog(
@@ -162,7 +155,7 @@ class _LoginPageState extends State<LoginPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 ElevatedButton(
-                  onPressed: isLoading ? null : login, // Disable button when loading
+                  onPressed: isLoading ? null : login,
                   child: isLoading
                       ? CircularProgressIndicator(
                     color: Colors.white,

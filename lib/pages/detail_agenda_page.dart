@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 class DetailAgendaPage extends StatelessWidget {
   final String? title;
   final String? date;
+  final String? time;
   final String? location;
   final String? imageUrl;
 
@@ -12,6 +13,7 @@ class DetailAgendaPage extends StatelessWidget {
     Key? key,
     this.title,
     this.date,
+    this.time,
     this.location,
     this.imageUrl,
   }) : super(key: key);
@@ -74,7 +76,7 @@ class DetailAgendaPage extends StatelessWidget {
                     _buildDetailRow(
                       Icons.access_time,
                       'Waktu',
-                      '09:00 - 12:00 WIB',
+                      time ?? '09:00 - 12:00 WIB',
                     ),
                     SizedBox(height: 10),
                     _buildDetailRow(
