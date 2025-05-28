@@ -1,37 +1,87 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
 
-class PortalPemerintahPage extends StatelessWidget {
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
+
+class PortalPemerintahPage extends StatefulWidget {
+  @override
+  _PortalPemerintahPageState createState() => _PortalPemerintahPageState();
+}
+
+class _PortalPemerintahPageState extends State<PortalPemerintahPage> {
+  List<dynamic> _portalData = [];
+  bool _isLoading = true;
+  String _errorMessage = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPortalData();
+  }
+
+  Future<void> _fetchPortalData() async {
+    try {
+      final response = await http.get(Uri.parse(
+          'https://wareng-three.vercel.app/api/v1/informasi/portal/get-portal'));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          _portalData = data['data']['data'];
+          _isLoading = false;
+          _errorMessage = '';
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Sistem sibuk, coba lagi nanti.';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Sistem sibuk, coba lagi nanti.';
+      });
+      print('Error fetching portal data: $e');
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(
           'Portal Pemerintah',
-          style: TextStyle(color: Colors.white), // Set title color to white
+          style: TextStyle(color: Colors.white),
         ),
-        backgroundColor: Color(0xFF00917C), // Set the background color here
+        backgroundColor: Color(0xFF00917C),
         iconTheme: IconThemeData(
           color: Colors.white,
-        ), // Set back button color to white
+        ),
       ),
-      body: ListView(
-        children: [
-          PortalCard(
-            title: 'SINKAL',
-            subtitle:
-                'SINKAL merupakan program yang diadakan oleh Biro Tata Pemerintahan Setda DIY yang terintegrasi mulai...',
-            image:
-                'assets/informasi/activity-example.png', // Replace with actual image asset
-          ),
-          PortalCard(
-            title: 'SID',
-            subtitle:
-                'Sistem Informasi Desa (SID) adalah sebuah platform teknologi informasi komunikasi untuk mendukung pe...',
-            image:
-                'assets/informasi/activity-example.png', // Replace with actual image asset
-          ),
-          // Add more PortalCards as needed
-        ],
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator(color: Color(0xFF00917C)))
+          : _errorMessage.isNotEmpty
+          ? Center(child: Text(_errorMessage, style: TextStyle(color: Colors.red, fontSize: 16)))
+          : _portalData.isEmpty
+          ? Center(child: Text('Tidak ada data', style: TextStyle(fontSize: 16)))
+          : ListView.builder(
+        itemCount: _portalData.length,
+        itemBuilder: (context, index) {
+          final portal = _portalData[index];
+          final imageUrl = (portal['img'] != null &&
+              portal['img'] is List &&
+              portal['img'].isNotEmpty)
+              ? 'https://wareng-three.vercel.app/images/portal/${portal['img'][0]}'
+              : 'https://via.placeholder.com/60';
+
+          return PortalCard(
+            title: portal['title'] ?? 'Judul Tidak Tersedia',
+            subtitle: portal['isi'] ?? 'Deskripsi Tidak Tersedia',
+            imageUrl: imageUrl,
+            url: portal['content'] ?? '',
+          );
+        },
       ),
     );
   }
@@ -40,13 +90,14 @@ class PortalPemerintahPage extends StatelessWidget {
 class PortalCard extends StatelessWidget {
   final String title;
   final String subtitle;
-  final String image;
+  final String imageUrl;
+  final String url;
 
-  // Constructor to receive title, subtitle, and image
   PortalCard({
     required this.title,
     required this.subtitle,
-    required this.image,
+    required this.imageUrl,
+    required this.url,
   });
 
   @override
@@ -59,37 +110,48 @@ class PortalCard extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: Row(
           children: [
-            // Image on the left side
-            Image.asset(image, width: 60, height: 60, fit: BoxFit.cover),
-            SizedBox(width: 16), // Space between image and text
+            Image.network(
+              imageUrl,
+              width: 60,
+              height: 60,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Image.asset('assets/informasi/activity-example.png',
+                    width: 60, height: 60, fit: BoxFit.cover);
+              },
+            ),
+            SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title
                   Text(
                     title,
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 8),
-                  // Subtitle (description)
                   Text(
                     subtitle,
                     style: TextStyle(fontSize: 14, color: Colors.grey),
-                    maxLines: 2, // Limit to 2 lines for the description
+                    maxLines: 2,
                     overflow:
-                        TextOverflow.ellipsis, // Add ellipsis for overflow
+                    TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
-            // Button at the right side
             ElevatedButton(
-              onPressed: () {},
+              onPressed: () async {
+                if (await canLaunchUrl(Uri.parse(url))) {
+                  await launchUrl(Uri.parse(url));
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not launch $url')));
+                }
+              },
               child: Text('Kunjungi'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF00917C), // Button background color
-                foregroundColor: Colors.white, // Text color (foreground)
+                backgroundColor: Color(0xFF00917C),
+                foregroundColor: Colors.white,
                 padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
