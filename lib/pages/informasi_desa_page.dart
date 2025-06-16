@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:intl/intl.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:tubes/pages/detail_agenda_page.dart';
 
 class SocialMediaButtons extends StatelessWidget {
   Future<void> _launchURL(String urlString, {String? appScheme}) async {
@@ -25,29 +29,20 @@ class SocialMediaButtons extends StatelessWidget {
       children: [
         IconButton(
           icon: FaIcon(FontAwesomeIcons.instagram, color: Colors.white),
-          onPressed: () {
-            _launchURL(
-              'https://www.instagram.com/your_profile',
-              appScheme: 'instagram://user?username=your_profile',
-            );
+          onPressed: () async {
+            await launch('https://www.instagram.com/desawareng/');
           },
         ),
         IconButton(
           icon: FaIcon(FontAwesomeIcons.google, color: Colors.white),
-          onPressed: () {
-            _launchURL(
-              'https://www.google.com',
-              appScheme: 'googlechrome://navigate?url=https://www.google.com',
-            );
+          onPressed: () async {
+            await launch('https://www.google.com/maps/place/Wareng,+Wonosari,+Gunungkidul+Regency,+Special+Region+of+Yogyakarta/@-7.9923891,110.5601612,15z/data=!3m1!4b1!4m6!3m5!1s0x2e7bb3aabce9199b:0xc7c716c3b640497f!8m2!3d-7.9890045!4d110.5721975!16s%2Fg%2F122_sfwv?entry=ttu&g_ep=EgoyMDI1MDUyMS4wIKXMDSoASAFQAw%3D%3D');
           },
         ),
         IconButton(
           icon: FaIcon(FontAwesomeIcons.facebook, color: Colors.white),
-          onPressed: () {
-            _launchURL(
-              'https://www.facebook.com/your_page',
-              appScheme: 'fb://page/your_page_id',
-            );
+          onPressed: () async {
+            await launch('https://www.facebook.com/masyarakatdesawareng/');
           },
         ),
       ],
@@ -232,7 +227,48 @@ class VisiMisiSection extends StatelessWidget {
   }
 }
 
-class KegiatanDesaSection extends StatelessWidget {
+class KegiatanDesaSection extends StatefulWidget {
+  @override
+  _KegiatanDesaSectionState createState() => _KegiatanDesaSectionState();
+}
+
+class _KegiatanDesaSectionState extends State<KegiatanDesaSection> {
+  List<dynamic> kegiatan = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchKegiatan();
+  }
+
+  Future<void> fetchKegiatan() async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+          'https://wareng-three.vercel.app/api/v1/informasi/kegiatan/get-kegiatan/',
+        ),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          kegiatan = data['data']['data'];
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+        print('Failed to load kegiatan: ${response.statusCode}');
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      print('Error fetching kegiatan: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -247,27 +283,41 @@ class KegiatanDesaSection extends StatelessWidget {
           ),
         ),
         SizedBox(height: 20),
-        CarouselSlider(
-          options: CarouselOptions(
-            height: MediaQuery.of(context).size.height * 0.4,
-            autoPlay: true,
-            enlargeCenterPage: true,
-            aspectRatio: 2.0,
-            viewportFraction: 0.8,
-          ),
-          items: List.generate(4, (index) {
-            return ConstrainedBox(
-              constraints: BoxConstraints(minHeight: 150),
-              child: ActivityCard(
-                title:
-                    'Lomba Pengagungan Antar Kalurahan Se-Kapanewon Wonosari',
-                date: '11/08/2024',
-                location: 'Balai Kalurahan Wareng Dan Padukuhan Singkar II',
-                imageUrl: 'assets/informasi/activity-example.png',
+        isLoading
+            ? Center(child: CircularProgressIndicator())
+            : kegiatan.isEmpty
+            ? Center(child: Text('Tidak ada kegiatan saat ini'))
+            : CarouselSlider(
+              options: CarouselOptions(
+                height: MediaQuery.of(context).size.height * 0.45,
+                autoPlay: true,
+                enlargeCenterPage: true,
+                aspectRatio: 16 / 9,
+                viewportFraction: 0.8,
               ),
-            );
-          }),
-        ),
+              items:
+                  kegiatan.map((item) {
+                    DateTime parsedDate = DateTime.parse(item['date']);
+                    String formattedDate = DateFormat(
+                      'dd/MM/yyyy',
+                    ).format(parsedDate);
+                    String formattedTime = DateFormat(
+                      'HH:mm',
+                    ).format(parsedDate);
+                    String imageUrl =
+                        item['img'].isNotEmpty
+                            ? 'https://wareng-three.vercel.app/images/${item['img'][0]}'
+                            : 'assets/informasi/activity-example.png';
+
+                    return ActivityCard(
+                      title: item['title'] ?? 'Judul Tidak Tersedia',
+                      date: formattedDate,
+                      time: formattedTime,
+                      location: item['location'] ?? 'Lokasi Tidak Diketahui',
+                      imageUrl: imageUrl,
+                    );
+                  }).toList(),
+            ),
       ],
     );
   }
@@ -332,12 +382,14 @@ class InformasiDesaPage extends StatelessWidget {
 class ActivityCard extends StatelessWidget {
   final String title;
   final String date;
+  final String time;
   final String location;
   final String imageUrl;
 
   ActivityCard({
     required this.title,
     required this.date,
+    required this.time,
     required this.location,
     required this.imageUrl,
   });
@@ -350,7 +402,20 @@ class ActivityCard extends StatelessWidget {
         padding: EdgeInsets.all(8.0),
         child: Column(
           children: [
-            Image.asset(imageUrl, height: 120, fit: BoxFit.cover),
+            imageUrl.startsWith('http')
+                ? Image.network(
+                  imageUrl,
+                  height: 120,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Icon(
+                      Icons.broken_image,
+                      size: 80,
+                      color: Colors.grey,
+                    );
+                  },
+                )
+                : Image.asset(imageUrl, height: 120, fit: BoxFit.cover),
             SizedBox(height: 8),
             Text(
               title,
@@ -359,8 +424,26 @@ class ActivityCard extends StatelessWidget {
             ),
             SizedBox(height: 8),
             Text(date, style: TextStyle(fontSize: 14)),
+            Text(time, style: TextStyle(fontSize: 14)),
             Text(location, style: TextStyle(fontSize: 14)),
-            TextButton(onPressed: () {}, child: Text('Baca lebih banyak >>')),
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (context) => DetailAgendaPage(
+                          title: title,
+                          date: date,
+                          time: time,
+                          location: location,
+                          imageUrl: imageUrl,
+                        ),
+                  ),
+                );
+              },
+              child: Text('Baca lebih banyak >>'),
+            ),
           ],
         ),
       ),
@@ -368,40 +451,90 @@ class ActivityCard extends StatelessWidget {
   }
 }
 
-class PerangkatDesaCarousel extends StatelessWidget {
+class PerangkatDesaCarousel extends StatefulWidget {
+  @override
+  _PerangkatDesaCarouselState createState() => _PerangkatDesaCarouselState();
+}
+
+class _PerangkatDesaCarouselState extends State<PerangkatDesaCarousel> {
+  List<dynamic> perangkatDesa = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchPerangkatDesa();
+  }
+
+  Future<void> fetchPerangkatDesa() async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+          'https://wareng-three.vercel.app/api/v1/administrasi/perangkatDesa/get',
+        ),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          perangkatDesa = data['data'];
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+        print('Failed to load perangkat desa: ${response.statusCode}');
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      print('Error fetching perangkat desa: $e');
+    }
+  }
+
+  String getPositionName(int rolePD) {
+    switch (rolePD) {
+      case 1:
+        return 'KASI PELAYANAN';
+      case 2:
+        return 'KASI PEMERINTAHAN';
+      case 3:
+        return 'KASI KERSA';
+      default:
+        return 'Jabatan Tidak Diketahui';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return CarouselSlider(
-      options: CarouselOptions(
-        height: MediaQuery.of(context).size.height * 0.3,
-        autoPlay: true,
-        enlargeCenterPage: true,
-        aspectRatio: 2.0,
-        viewportFraction: 0.8,
-      ),
-      items: [
-        PerangkatDesaCard(
-          name: 'Ari Wibawa, S.I.P.',
-          position: 'Lurah Wareng',
-          imageUrl: 'assets/informasi/image-pak-lurah.png',
-        ),
-        PerangkatDesaCard(
-          name: 'Budi Santoso, S.T.',
-          position: 'Sekretaris Desa',
-          imageUrl: 'assets/informasi/image-pak-lurah.png',
-        ),
-        PerangkatDesaCard(
-          name: 'Siti Aminah, S.Pd.',
-          position: 'Kepala Urusan Pemerintahan',
-          imageUrl: 'assets/informasi/image-pak-lurah.png',
-        ),
-        PerangkatDesaCard(
-          name: 'Mulyani, S.E.',
-          position: 'Kepala Urusan Pembangunan',
-          imageUrl: 'assets/informasi/image-pak-lurah.png',
-        ),
-      ],
-    );
+    return isLoading
+        ? Center(child: CircularProgressIndicator())
+        : perangkatDesa.isEmpty
+        ? Center(child: Text('Tidak ada data perangkat desa'))
+        : CarouselSlider(
+          options: CarouselOptions(
+            height: MediaQuery.of(context).size.height * 0.3,
+            autoPlay: true,
+            enlargeCenterPage: true,
+            aspectRatio: 2.0,
+            viewportFraction: 0.8,
+          ),
+          items:
+              perangkatDesa.map((item) {
+                String imageUrl =
+                    (item['user']['profileImage'] != null &&
+                            item['user']['profileImage'].isNotEmpty)
+                        ? 'https://wareng-three.vercel.app/images/${item['user']['profileImage']}'
+                        : 'assets/informasi/default-profile.png';
+
+                return PerangkatDesaCard(
+                  name: item['user']['name'] ?? 'Nama Tidak Tersedia',
+                  position: getPositionName(item['rolePD']),
+                  imageUrl: imageUrl,
+                );
+              }).toList(),
+        );
   }
 }
 
@@ -421,15 +554,44 @@ class PerangkatDesaCard extends StatelessWidget {
     return Card(
       elevation: 4,
       child: Container(
-        width: 150,
+        width: 200,
         padding: EdgeInsets.all(8.0),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircleAvatar(radius: 40, backgroundImage: AssetImage(imageUrl)),
+            CircleAvatar(
+              radius: 40,
+              child:
+                  imageUrl.startsWith('http')
+                      ? ClipOval(
+                        child: Image.network(
+                          imageUrl,
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Icon(
+                              Icons.broken_image,
+                              size: 80,
+                              color: Colors.grey,
+                            );
+                          },
+                        ),
+                      )
+                      : Icon(Icons.broken_image, size: 80, color: Colors.grey),
+            ),
             SizedBox(height: 8),
-            Text(name, style: TextStyle(fontWeight: FontWeight.bold)),
-            Text(position),
-            TextButton(onPressed: () {}, child: Text('Hubungi Perangkat')),
+            Text(
+              name,
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+            Text(
+              position,
+              style: TextStyle(fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+            // TextButton(onPressed: () {}, child: Text('Hubungi Perangkat')), // Optional: Add if needed
           ],
         ),
       ),
